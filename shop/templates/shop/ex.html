@@ -1,0 +1,158 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcomShop</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- Bootstrap Bundle JS (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg" style="background-color: pink;">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="#">EcomShop</a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNavDropdown">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link active" href="#">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">Shop</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">Categories</a></li>
+
+                    <!-- Cart Button -->
+                    <button id="cart" class="btn btn-secondary ms-2" type="button">
+                        Cart(0)
+                    </button>
+                </ul>
+
+                <form class="d-flex me-3" role="search">
+                    <input class="form-control me-2" type="search" placeholder="Search products...">
+                    <button class="btn btn-dark" type="submit">Search</button>
+                </form>
+
+                <div class="d-flex">
+                    <a href="#" class="btn btn-outline-dark me-2">Login</a>
+                    <a href="#" class="btn btn-dark">Register</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Products -->
+    <div class="row mt-3">
+        {% for product in product_objects %}
+            <div class="col-md-3">
+                <div class="card mb-3">
+                    <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.title }}" style="height:200px; object-fit:cover;">
+                    <div class="card-body">
+                        <div id="nm{{ product.id }}" class="card-title">{{ product.title }}</div>
+                        <div class="card-text">{{ product.price }}</div>
+                        <a href="/{{ product.id }}" class="btn btn-warning">View</a>
+                        <button id="{{ product.id }}" class="btn atc btn-warning">Add to cart</button>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+var cart = localStorage.getItem('cart') ? JSON.parse(localStorage.getItem('cart')) : {};
+var cartBtn = document.getElementById('cart');
+
+// Update cart button text
+function updateCartButton() {
+    cartBtn.innerHTML = "Cart(" + Object.keys(cart).length + ")";
+}
+
+// Generate popover content
+function generateCartContent(cart) {
+    let html = "<h5>Your Cart</h5>";
+    let index = 1;
+    let totalItems = 0;
+
+    for (let x in cart) {
+        let itemEl = document.getElementById("nm" + x);
+        if (!itemEl) {
+            delete cart[x]; // Remove invalid items
+            continue;
+        }
+        let name = itemEl.innerText;
+        html += `${index}. ${name} — Qty: ${cart[x]}<br>`;
+        totalItems += cart[x];
+        index++;
+    }
+
+    localStorage.setItem('cart', JSON.stringify(cart));
+
+    if (totalItems === 0) {
+        html += "<p>Your cart is empty.</p>";
+    } else {
+        html += `<div class="mt-2 text-center">
+                    <button id="checkoutBtn" class="btn btn-primary btn-sm">Checkout</button>
+                 </div>`;
+    }
+
+    return html;
+}
+
+// Initialize popover (manual trigger)
+var popover = new bootstrap.Popover(cartBtn, {
+    html: true,
+    placement: 'bottom',
+    trigger: 'manual',
+    content: generateCartContent(cart),
+    sanitize: false
+});
+
+// Refresh popover content
+function refreshPopover() {
+    popover.dispose();
+    popover = new bootstrap.Popover(cartBtn, {
+        html: true,
+        placement: 'bottom',
+        trigger: 'manual',
+        content: generateCartContent(cart),
+        sanitize: false
+    });
+    popover.show();
+}
+
+// Initial cart button
+updateCartButton();
+
+// Show popover when cart button clicked
+cartBtn.addEventListener('click', function() {
+    refreshPopover();
+});
+
+// Add to Cart
+$(document).on("click", ".atc", function() {
+    let id = this.id.toString();
+    cart[id] = cart[id] ? cart[id] + 1 : 1;
+    localStorage.setItem('cart', JSON.stringify(cart));
+    updateCartButton();
+    refreshPopover(); // Update popover content
+});
+
+// Checkout button click
+$(document).on("click", "#checkoutBtn", function(e) {
+    e.stopPropagation(); // prevent popover from closing
+    window.location.href = "/checkout"; // Django view
+});
+</script>
+</body>
+</html>

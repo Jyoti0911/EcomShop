@@ -1,0 +1,168 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-5">
+    <h2 class="text-center mb-4">🛍️ Checkout Summary</h2>
+
+    <!-- Cart Summary -->
+    <div id="cartSummary"></div>
+
+   <form id="shippingForm" method="POST">
+  {% csrf_token %}
+
+  <!-- Shipping fields -->
+  <div class="mb-3">
+    <label class="form-label">Full Name</label>
+    <input type="text" name="name" id="name" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Email</label>
+    <input type="email" name="email" id="email" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Phone</label>
+    <input type="text" name="phone" id="phone" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Address</label>
+    <textarea name="address" id="address" class="form-control" rows="3" required></textarea>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">City</label>
+    <input type="text" name="city" id="city" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Postal Code</label>
+    <input type="text" name="zipcode" id="zipcode" class="form-control" required>
+  </div>
+
+  <!-- Hidden fields for cart -->
+  <input type="hidden" name="cart_data" id="cart_data">
+  <input type="hidden" name="total_price" id="total_price">
+
+  <button type="submit" class="btn btn-success w-100">Proceed to Payment</button>
+</form>
+      <button type="button" id="clearCart" class="btn btn-danger w-100 mt-2">Clear Cart</button>
+    </div>
+  </div>
+
+  <script>
+document.addEventListener("DOMContentLoaded", function() {
+  // Load cart from localStorage
+  const cart = JSON.parse(localStorage.getItem("cart")) || {};
+  const cartSummary = document.getElementById("cartSummary");
+  const cartInput = document.getElementById("cartData");
+  const totalInput = document.getElementById("totalPrice");
+
+  // --- 1️⃣ Render Cart Table ---
+  function renderCart() {
+    if (Object.keys(cart).length === 0) {
+      cartSummary.innerHTML = "<p class='text-center text-muted'>Your cart is empty.</p>";
+      document.querySelector("button[type='submit']").disabled = true; // disable checkout
+      return;
+    }
+
+    let html = `
+      <table class="table table-bordered text-center align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>#</th>
+            <th>Product Name</th>
+            <th>Quantity</th>
+            <th>Price (₹)</th>
+            <th>Total (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    let totalItems = 0;
+    let totalPrice = 0;
+    let index = 1;
+
+    for (let id in cart) {
+      const item = cart[id];
+      const price = parseFloat(item.price) || 0;
+      const qty = parseInt(item.qty) || 0;
+      const itemTotal = price * qty;
+
+      html += `
+        <tr>
+          <td>${index}</td>
+          <td>${item.name}</td>
+          <td>${qty}</td>
+          <td>${price.toFixed(2)}</td>
+          <td>${itemTotal.toFixed(2)}</td>
+        </tr>
+      `;
+
+      totalItems += qty;
+      totalPrice += itemTotal;
+      index++;
+    }
+
+    html += `
+      <tr class="fw-bold">
+        <td colspan="2">Total</td>
+        <td>${totalItems}</td>
+        <td></td>
+        <td>₹${totalPrice.toFixed(2)}</td>
+      </tr>
+      </tbody>
+    </table>
+    `;
+
+    cartSummary.innerHTML = html;
+
+    // Update hidden inputs
+    if (cartInput) cartInput.value = JSON.stringify(cart);
+    if (totalInput) totalInput.value = totalPrice.toFixed(2);
+  }
+
+  renderCart();
+
+  // --- 2️⃣ Clear Cart Button ---
+  const clearBtn = document.getElementById("clearCart");
+  if (clearBtn) {
+    clearBtn.addEventListener("click", function() {
+      localStorage.removeItem("cart");
+      alert("Cart cleared successfully!");
+      location.reload();
+    });
+  }
+
+  // --- 3️⃣ On Form Submit ---
+  const form = document.getElementById("shippingForm");
+  if (form) {
+    form.addEventListener("submit", function() {
+      // Ensure hidden fields updated before submitting
+      if (cartInput) cartInput.value = JSON.stringify(cart);
+      const total = Object.values(cart).reduce((sum, item) => {
+        const price = parseFloat(item.price) || 0;
+        const qty = parseInt(item.qty) || 0;
+        return sum + price * qty;
+      }, 0);
+      if (totalInput) totalInput.value = total.toFixed(2);
+
+      // Optional: clear cart after submit
+      localStorage.removeItem("cart");
+    });
+  }
+});
+</script>
+
+</body>
+</html>
